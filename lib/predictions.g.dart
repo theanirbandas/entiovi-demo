@@ -19,7 +19,7 @@ Map<String, dynamic> _$PredictionModelToJson(PredictionModel instance) =>
     };
 
 Predictions _$PredictionsFromJson(Map<String, dynamic> json) => Predictions(
-      data: (json['data'] as Map<String, dynamic>).map(
+      data: (json).map(
         (k, e) =>
             MapEntry(k, PredictionModel.fromJson(e as Map<String, dynamic>)),
       ),

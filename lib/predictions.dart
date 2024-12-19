@@ -17,6 +17,11 @@ class PredictionModel {
   factory PredictionModel.fromJson(Map<String, dynamic> json) => _$PredictionModelFromJson(json);
 
   Map<String, dynamic> toJson() => _$PredictionModelToJson(this);
+
+  @override
+  String toString() {
+    return _$PredictionModelToJson(this).toString();
+  }
 }
 
 @JsonSerializable()

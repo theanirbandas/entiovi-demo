@@ -1,6 +1,7 @@
-
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
 import 'FinalReportModel.dart';
 import 'predictions.dart';
@@ -17,10 +18,10 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-
   final TextEditingController PAT_WT = TextEditingController();
   final TextEditingController MULT_FETUS = TextEditingController();
-  final TextEditingController GAGE_US = TextEditingController();
+  final TextEditingController GAGE_US1 = TextEditingController();
+  final TextEditingController GAGE_US2 = TextEditingController();
   final TextEditingController MS1_RESULT = TextEditingController();
   final TextEditingController MS1_GEST = TextEditingController();
   final TextEditingController MS1_MATAGE = TextEditingController();
@@ -38,11 +39,10 @@ class _MyAppState extends State<MyApp> {
   final TextEditingController PatenLast_Name = TextEditingController();
   final TextEditingController PatenFirst_Name = TextEditingController();
   final TextEditingController External_ID = TextEditingController();
-  final TextEditingController Sample_ID  = TextEditingController();
+  final TextEditingController Sample_ID = TextEditingController();
 
   List<Map<String, dynamic>> parameters2age = [];
   List<Map<String, dynamic>> parameters4LabTest = [];
-  
 
   void callApiService(BuildContext context) async {
     final dio = Dio();
@@ -60,14 +60,14 @@ class _MyAppState extends State<MyApp> {
       // INHA1: 0,
       // RPT_GMETH: "U",
       MULT_FETUS: double.tryParse(MULT_FETUS.text) ?? 0,
-      GAGE_US: double.tryParse(GAGE_US.text) ?? 0,
+      GAGE_US: double.tryParse(GAGE_US2.text.trim().isNotEmpty ? GAGE_US2.text.trim() : GAGE_US1.text.trim()) ?? 0,
       MS1_RESULT: double.tryParse(MS1_RESULT.text) ?? 0,
       MS1_GEST: double.tryParse(MS1_GEST.text) ?? 0,
       MS1_MATAGE: double.tryParse(MS1_MATAGE.text) ?? 0,
       HCG1: double.tryParse(HCG1.text) ?? 0,
       EST1: double.tryParse(EST1.text) ?? 0,
       INHA1: double.tryParse(INHA1.text) ?? 0,
-      RPT_GMETH: RPT_GMETH.text,  // No parsing needed as it is a string
+      RPT_GMETH: GAGE_US2.text.trim().isNotEmpty ? 'U' : 'l',
     );
 
     print(PatenFirst_Name);
@@ -76,19 +76,22 @@ class _MyAppState extends State<MyApp> {
       // response.data[]
       print("Predictions: ${response.data}");
 
-      
+      showDialog(
+        context: context,
+        builder: (context) => DoctorReportDialog(
+          predictions: response,
+          Physician_Name: Physician_Name.text,
+          patientName: '${PatenFirst_Name.text} ${PatenLast_Name.text}',
+          patientDob: MaternalDOB.text,
+          patientWeight: double.tryParse(PAT_WT.text) ?? 0,
+          hcg: double.tryParse(HCG1.text) ?? 0,
+          est1: double.tryParse(EST1.text) ?? 0,
+          ms1Result: double.tryParse(MS1_RESULT.text) ?? 0,
+        ),
+      );
     } catch (e) {
       print("Error: $e");
     }
-
-    showDialog(
-      context: context, 
-      builder: (context) => DoctorReportDialog(
-        //predictions: response,
-        Physician_Name: Physician_Name.text,
-        patientName: '${PatenFirst_Name.text} ${PatenLast_Name.text}',
-      ),
-    );
   }
 
   @override
@@ -96,15 +99,15 @@ class _MyAppState extends State<MyApp> {
     super.initState();
 
     parameters2age = [
-      {'label2': 'LMP on', 'hint2': 'Enter LMP', 'controler': GAGE_US, "RPT_GMETH": "l"},
-      {'label2': 'U/S', 'hint2': 'Enter U/S', 'controler': GAGE_US, "RPT_GMETH": "U"},
+      {'label2': 'LMP on', 'hint2': 'Enter LMP', 'controller': GAGE_US1, "RPT_GMETH": "l"},
+      {'label2': 'U/S', 'hint2': 'Enter U/S', 'controller': GAGE_US2, "RPT_GMETH": "U"},
     ];
 
     parameters4LabTest = [
-      {'label2': 'hCG result', 'hint2': 'Enter your hCG result in iu/ml', 'unit': 'iu/ml', 'controler': HCG1},
-      {'label2': 'uE3 result', 'hint2': 'Enter your uE3 result in ng/ml', 'unit': 'ng/ml', 'controler': EST1},
-      {'label2': 'INH-A result', 'hint2': 'Enter your INH-A result in gh/ml', 'unit': 'gh/ml', 'controler': INHA1},
-      {'label2': 'MS1 result', 'hint2': 'Enter your MS1 result in gh/ml', 'unit': 'gh/ml', 'controler': MS1_RESULT},
+      {'label2': 'hCG result', 'hint2': 'Enter your hCG result in iu/ml', 'unit': 'iu/ml', 'controller': HCG1},
+      {'label2': 'uE3 result', 'hint2': 'Enter your uE3 result in ng/ml', 'unit': 'ng/ml', 'controller': EST1},
+      {'label2': 'INH-A result', 'hint2': 'Enter your INH-A result in gh/ml', 'unit': 'gh/ml', 'controller': INHA1},
+      {'label2': 'MS1 result', 'hint2': 'Enter your MS1 result in gh/ml', 'unit': 'gh/ml', 'controller': MS1_RESULT},
     ];
   }
 
@@ -132,9 +135,13 @@ class _MyAppState extends State<MyApp> {
         ),
         textTheme: const TextTheme(
           bodyLarge: TextStyle(fontFamily: 'Segoe UI', fontSize: 16, color: Colors.black87),
-          titleLarge: TextStyle(fontFamily: 'Segoe UI', fontWeight: FontWeight.bold, fontSize: 18, color: Colors.blueAccent),
+          titleLarge:
+              TextStyle(fontFamily: 'Segoe UI', fontWeight: FontWeight.bold, fontSize: 18, color: Colors.blueAccent),
           // button: TextStyle(fontFamily: 'Segoe UI', fontSize: 16, fontWeight: FontWeight.bold),
-        ), colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.blue).copyWith(background: const Color(0xFFF3F4F6)).copyWith(secondary: Colors.blueAccent),
+        ),
+        colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.blue)
+            .copyWith(background: const Color(0xFFF3F4F6))
+            .copyWith(secondary: Colors.blueAccent),
       ),
       home: Scaffold(
         backgroundColor: const Color(0xFFF3F4F6), // Light grey background
@@ -167,6 +174,11 @@ class _MyAppState extends State<MyApp> {
                             physicianName: Physician_Name,
                             patientFirstName: PatenFirst_Name,
                             patientLastName: PatenLast_Name,
+                            patientDob: MaternalDOB,
+                            weightController: PAT_WT,
+                            multFetusController: MULT_FETUS,
+                            ms1GestController: MS1_GEST,
+                            ms1MatageController: MS1_MATAGE,
                           ),
                         ),
                       ),
@@ -203,6 +215,7 @@ class _MyAppState extends State<MyApp> {
                                           controller: param['controller'],
                                           label: param['label2']!,
                                           hint: param['hint2']!,
+                                          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r"[0-9.]")),],
                                         ),
                                       );
                                     }),
@@ -237,6 +250,7 @@ class _MyAppState extends State<MyApp> {
                                           controller: param['controller'],
                                           label: param['label2']!,
                                           hint: param['hint2']!,
+                                          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r"[0-9.]")),],
                                         ),
                                       );
                                     }),
@@ -267,39 +281,66 @@ class _MyAppState extends State<MyApp> {
             ),
           ),
         ),
-        floatingActionButton: Builder(
-          builder: (context) {
-            return FloatingActionButton.extended(
-              onPressed: () {
-                callApiService(context);
-            
-                // Implement your submission functionality here
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Form Submitted!')),
-                );
-              },
-              label: const Text('Submit'),
-              icon: const Icon(Icons.send),
-              backgroundColor: Colors.blueAccent,
-            );
-          }
-        ),
+        floatingActionButton: Builder(builder: (context) {
+          return FloatingActionButton.extended(
+            onPressed: () {
+              callApiService(context);
+
+              // Implement your submission functionality here
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Form Submitted!')),
+              );
+            },
+            label: const Text('Submit'),
+            icon: const Icon(Icons.send),
+            backgroundColor: Colors.blueAccent,
+          );
+        }),
       ),
     );
   }
 }
 
 // Form Widget
-class FormLayout extends StatelessWidget {
-
+class FormLayout extends StatefulWidget {
   final TextEditingController physicianName;
   final TextEditingController patientFirstName;
   final TextEditingController patientLastName;
+  final TextEditingController? patientDob;
+  final TextEditingController? weightController;
+  final TextEditingController? multFetusController;
+  final TextEditingController? ms1GestController;
+  final TextEditingController? ms1MatageController;
 
   const FormLayout({
     super.key,
-    required this.physicianName, required this.patientFirstName, required this.patientLastName,
+    required this.physicianName,
+    required this.patientFirstName,
+    required this.patientLastName,
+    this.patientDob,
+    this.weightController,
+    this.multFetusController,
+    this.ms1GestController,
+    this.ms1MatageController,
   });
+
+  @override
+  State<FormLayout> createState() => _FormLayoutState();
+}
+
+class _FormLayoutState extends State<FormLayout> {
+
+  void _showDatepicker(BuildContext context) async {
+    DateTime? date = await showDatePicker(
+      context: context, 
+      firstDate: DateTime.now().subtract(const Duration(days: 365*100)), 
+      lastDate: DateTime.now().subtract(const Duration(days: 365*14))
+    );
+
+    if (date != null) {
+      widget.patientDob?.text = DateFormat('dd-MM-yyyy').format(date);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -309,42 +350,59 @@ class FormLayout extends StatelessWidget {
         children: [
           const StylishTextField(label: 'External ID:'),
           const SizedBox(height: 16),
-
           Row(
             children: [
-              Expanded(child: StylishTextField(
+              Expanded(
+                  child: StylishTextField(
                 label: 'Last name:',
-                controller: patientLastName,
+                controller: widget.patientLastName,
               )),
               const SizedBox(width: 16),
-              Expanded(child: StylishTextField(
+              Expanded(
+                  child: StylishTextField(
                 label: 'First name:',
-                controller: patientFirstName,
+                controller: widget.patientFirstName,
               )),
             ],
           ),
           const SizedBox(height: 16),
-
           StylishDropdown(
-            label: '1st physician:', 
-            onChanged: (value) => physicianName.text = value ?? '',
+            label: '1st physician:',
+            onChanged: (value) => widget.physicianName.text = value ?? '',
           ),
           const SizedBox(height: 16),
-
-          const StylishTextField(label: 'Maternal D.O.B:'),
+          StylishTextField(
+            label: 'Maternal D.O.B:',
+            controller: widget.patientDob,
+            readOnly: true,
+            onTap: () => _showDatepicker(context),
+          ),
           const SizedBox(height: 16),
           const StylishDropdown(label: 'Race:'),
           const SizedBox(height: 16),
-
-          const Row(
+          Row(
             children: [
-              Expanded(child: StylishTextField(label: 'Weight:', hint: '0', suffix: 'Lbs')),
-              SizedBox(width: 16),
-              Expanded(child: StylishTextField(label: 'Mult. of preg:', hint: '1')),
+              Expanded(
+                child: StylishTextField(
+                  controller: widget.weightController,
+                  label: 'Weight:',
+                  hint: '0',
+                  suffix: 'Lbs',
+                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r"[0-9.]")),],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: StylishTextField(
+                  controller: widget.multFetusController,
+                  label: 'Mult. of preg:',
+                  hint: '1',
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 20),
-
           const Column(
             children: [
               StylishCheckbox(label: 'Diabetic'),
@@ -353,7 +411,6 @@ class FormLayout extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-
           Text('Tests to do:', style: Theme.of(context).textTheme.bodyLarge),
           const Row(
             children: [
@@ -364,8 +421,19 @@ class FormLayout extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-
           const StylishCheckbox(label: 'Do EDS assessment'),
+          const SizedBox(height: 16),
+          StylishTextField(
+            label: 'MS1 GEST',
+            controller: widget.ms1GestController,
+            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r"[0-9.]")),],
+          ),
+          const SizedBox(height: 16),
+          StylishTextField(
+            label: 'MS1 MATAGE',
+            controller: widget.ms1MatageController,
+            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r"[0-9.]")),],
+          ),
           const SizedBox(height: 30),
         ],
       ),
@@ -381,8 +449,22 @@ class StylishTextField extends StatelessWidget {
   final String? hint;
   final String? suffix;
   final int? maxLines;
+  final List<TextInputFormatter>? inputFormatters;
+  final bool? readOnly;
+  final VoidCallback? onTap;
 
-  const StylishTextField({super.key, this.controller, required this.label, this.initialValue, this.hint, this.suffix, this.maxLines = 1});
+  const StylishTextField({
+    super.key,
+    this.controller,
+    required this.label,
+    this.initialValue,
+    this.hint,
+    this.suffix,
+    this.maxLines = 1,
+    this.inputFormatters,
+    this.readOnly,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -406,6 +488,9 @@ class StylishTextField extends StatelessWidget {
             controller: controller,
             initialValue: initialValue,
             maxLines: maxLines,
+            inputFormatters: inputFormatters,
+            readOnly: readOnly ?? false,
+            onTap: onTap,
             decoration: InputDecoration(
               hintText: hint,
               suffixText: suffix,
